@@ -5,12 +5,8 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 # Import packages
 import tensorflow as tf
-import tensorflow_probability as tfp
 import gym
 import numpy as np
-
-# Turn off eager execution
-tf.compat.v1.disable_eager_execution()
 
 
 # --- SET UP ENVIRONMENT --- #
@@ -74,6 +70,14 @@ def compute_loss(y, policy_output):
     log_prob = tf.math.log(prob)
     return -tf.reduce_mean(log_prob * rets)
 
+def compute_ret_2_go(rew_arr):
+
+    rets_2_go = np.zeros(len(rew_arr))
+    for i in range(len(rew_arr)):
+        rets_2_go[:i+1] += rew_arr[i]
+
+    return rets_2_go.tolist()
+
 
 # --- COMPILE NETWORK --- #
 policy_net.compile(optimizer=optimizer, loss=compute_loss)
@@ -127,7 +131,8 @@ for epoch in range(epochs):
             ep_len = len(ep_rew)
             batch_rets.append(ep_ret)
             batch_lens.append(ep_len)
-            batch_weights += [ep_ret] * ep_len
+            # batch_weights += [ep_ret] * ep_len
+            batch_weights += compute_ret_2_go(ep_rew)
 
             # Reset the game
             obs = env.reset()
